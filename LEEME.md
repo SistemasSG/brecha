@@ -49,5 +49,10 @@ Mira el log de la corrida en Actions.
   sigue siendo el plan B.
 - `BCV directo falló`: usa automáticamente la API de respaldo; si también falla,
   la corrida no escribe nada y lo reintenta a la hora siguiente.
-- El commit falla: revisa en Settings → Actions → General que *Workflow permissions*
-  esté en **Read and write permissions**.
+- El commit falla: **no** cambies *Workflow permissions* a "Read and write". El flujo ya
+  pide lo que necesita con `permissions: contents: write` dentro de `recolectar.yml`, y ese
+  bloque manda por encima del valor del repositorio. Lo de Settings → Actions → General es
+  el permiso **por defecto**, no un techo: dejarlo en "Read repository contents" es lo
+  correcto, porque así cada flujo declara su propio permiso en vez de que todos escriban
+  por defecto. Si aun así falla, mira si el repositorio pertenece a una organización con
+  una política que limite los permisos, o si el token expiró.
