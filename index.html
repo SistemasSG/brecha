@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de brecha — local</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Estructura y neutros al estilo Fluent; amarillo y negro de Cashea como voz */
+  :root{
+    --bg:#F3F3F3; --surface:#FFFFFF; --tile:#1F1F1F;
+    --ink:#1F1F1F; --muted:#616161; --line:#E3E3E3;
+    --slate:#0F6CBD; --amarillo:#FDFA3D;
+    --go:#107C41; --wait:#9D5D00;
+    --go-soft:#FDFA3D; --wait-soft:#FBF3D9;
+    --ui:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,sans-serif;
+    --display:'Poppins','Segoe UI',sans-serif;
+    --sombra:0 1px 2px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#202020; --surface:#2B2B2B; --tile:#141414;
+      --ink:#F3F3F3; --muted:#A8A8A8; --line:#3A3A3A;
+      --slate:#5CAEF5; --go:#5FD08A; --wait:#E8B657;
+      --go-soft:#FDFA3D; --wait-soft:#3A2F10; --sombra:none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#202020; --surface:#2B2B2B; --tile:#141414; --ink:#F3F3F3; --muted:#A8A8A8;
+    --line:#3A3A3A; --slate:#5CAEF5; --go:#5FD08A; --wait:#E8B657;
+    --go-soft:#FDFA3D; --wait-soft:#3A2F10; --sombra:none;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px 56px}
+  h1{font-family:var(--display);font-weight:600;font-size:1.3rem;margin:0 0 2px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:.8rem;margin:0 0 16px}
+  header.barra{margin:0 -16px 18px;padding:20px 16px 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+  header.barra .marca{width:44px;height:6px;background:var(--amarillo);border-radius:3px;margin-bottom:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--sombra);padding:16px;margin-bottom:12px}
+  .card h2{font-family:var(--display);font-size:.95rem;font-weight:600;margin:0 0 4px}
+  .card p.cap{color:var(--muted);font-size:.78rem;margin:0 0 12px}
+
+  /* Tile principal, negro Cashea */
+  .wrap > section.card:first-of-type{background:var(--tile);border-color:var(--tile);color:#FFFFFF;padding:22px 18px 18px}
+  .gapnum{font-family:var(--display);font-weight:700;font-size:4rem;line-height:.95;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--amarillo)}
+  .gapnum span{font-size:1.7rem;letter-spacing:0;margin-left:2px}
+  .gaplabel{color:#B4B4B4;font-size:.8rem;margin-top:6px}
+  .rates{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+  .rates div{flex:1}
+  .rates b{display:block;font-family:var(--display);font-size:1.15rem;font-weight:600;color:#FFFFFF}
+  .rates small{color:#B4B4B4;font-size:.72rem}
+  .verdict{margin-top:16px;border-radius:6px;padding:12px 14px;border:1px solid transparent}
+  .verdict.go{background:var(--amarillo);border-color:var(--amarillo);color:#1F1F1F}
+  .verdict.go p{color:#1F1F1F;opacity:.78}
+  .verdict.wait{background:rgba(255,255,255,.07);border-color:#E8B657;color:#E8B657}
+  .verdict.flat{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#EDEDED}
+  .verdict b{display:block;font-family:var(--display);font-size:1rem;font-weight:600;margin-bottom:2px}
+  .verdict p{margin:0;font-size:.82rem;color:#D6D6D6}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+  .stat b{display:block;font-family:var(--display);font-size:1.2rem;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat small{color:var(--muted);font-size:.71rem;line-height:1.3;display:block}
+  label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:5px}
+  input,select{width:100%;padding:8px 10px;font-size:.95rem;font-family:inherit;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-bottom:2px solid #8A8A8A;border-radius:4px}
+  input:focus-visible,select:focus-visible{outline:none;border-bottom-color:var(--amarillo);border-bottom-width:2px;box-shadow:0 0 0 1px var(--line)}
+  button.mini{width:auto;padding:4px 10px;font-size:.75rem;background:transparent;color:var(--muted);border-color:var(--line)}
+  button.mini:hover{background:var(--bg);color:var(--ink)}
+  .row{display:flex;gap:10px}
+  .row .field{flex:1;margin-bottom:12px}
+  button{font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;padding:9px 16px;border-radius:4px;border:1px solid #1F1F1F;background:#1F1F1F;color:var(--amarillo);width:100%}
+  button:hover{background:#333131}
+  button:focus-visible{outline:2px solid var(--amarillo);outline-offset:2px}
+  .note{font-size:.75rem;color:var(--muted);margin:10px 0 0}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .axis{font-size:9px;fill:var(--muted);font-family:var(--ui)}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.84rem}
+  th{text-align:left;font-weight:600;font-size:.71rem;color:var(--muted);padding:0 14px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 14px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:last-child,td:last-child{padding-right:0}
+  td.r,th.r{text-align:right}
+  .best{color:var(--go);font-weight:600}
+  .empty{color:var(--muted);font-size:.83rem;padding:14px 0;text-align:center}
+  .scroll{overflow-x:auto}
+  .zona{margin-top:10px;padding:14px;border:1px dashed var(--line);border-radius:6px;text-align:center;color:var(--muted);font-size:.78rem}
+  .filaAcc{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .sello{font-size:.72rem;color:var(--muted)}
+  .zona.activa{border-color:var(--amarillo);border-style:solid;color:var(--ink);background:var(--bg)}
+  tr.prox td{font-weight:600}
+  tr.prox td:first-child{box-shadow:inset 3px 0 0 var(--amarillo);padding-left:8px}
+  td.dim{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="barra">
+    <div class="marca"></div>
+    <h1>Brecha BCV / Binance P2P</h1>
+    <p class="sub" style="margin-bottom:0">Venta de USDT por 100.000 Bs, Mercantil o Provincial. El recolector escribe 12 lecturas al día.</p>
+    <div class="filaAcc">
+      <button id="btnRecargar" class="mini">Actualizar panel</button>
+      <span class="sello" id="selloRecarga"></span>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="gapnum" id="heroGap">—<span>%</span></div>
+    <div class="gaplabel" id="heroDate">Sin lecturas todavía</div>
+    <div class="rates">
+      <div><b id="heroBcv">—</b><small>BCV (Bs por USD)</small></div>
+      <div><b id="heroP2p">—</b><small>P2P venta (Bs por USDT)</small></div>
+    </div>
+    <div class="verdict flat" id="verdict"><b>Esperando datos</b><p>El panel se llena solo a medida que corre el recolector.</p></div>
+  </section>
+
+  <section class="card">
+    <h2>Recolector en la nube</h2>
+    <p class="cap" id="capNube">GitHub Actions consulta BCV y Binance cada hora, de 9 a 20, sin depender de ningún equipo.</p>
+    <button id="btnRefrescar">Buscar lecturas nuevas</button>
+    <p class="note" id="estadoRef">Para forzar una lectura fuera de horario, usa «Run workflow» en la pestaña Actions del repositorio.</p>
+  </section>
+
+  <section class="card">
+    <h2>Hoy, hora por hora</h2>
+    <p class="cap" id="capIntra">—</p>
+    <div id="chartIntra"></div>
+  </section>
+
+  <section class="card">
+    <h2>A qué hora conviene convertir</h2>
+    <p class="cap">Brecha promedio por hora, acumulando todos los días registrados.</p>
+    <div id="chartHoras"></div>
+    <p class="note" id="notaHoras"></p>
+  </section>
+
+  <section class="card">
+    <h2>Evolución diaria</h2>
+    <p class="cap">Cierre de cada día: la última lectura antes de las 8 pm.</p>
+    <div id="chartDias"></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="stat"><b id="sma7">—</b><small>Promedio 7 días</small></div>
+      <div class="stat"><b id="sma30">—</b><small>Promedio 30 días</small></div>
+      <div class="stat"><b id="percentil">—</b><small>Percentil de hoy</small></div>
+      <div class="stat"><b id="rango">—</b><small>Mínimo y máximo</small></div>
+    </div>
+    <p class="note" id="tendencia"></p>
+  </section>
+
+  <section class="card">
+    <h2>Lo que te cuesta la cuota</h2>
+    <div class="row">
+      <div class="field"><label for="cuota">Cuota en USD</label><input type="number" id="cuota" inputmode="decimal" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label for="dias">Días hasta vencer</label><input type="number" id="dias" inputmode="numeric" step="1" min="0" placeholder="0"></div>
+    </div>
+    <div class="grid">
+      <div class="stat"><b id="costoBs">—</b><small>Bs a transferir (tasa BCV)</small></div>
+      <div class="stat"><b id="costoUsdt">—</b><small>USDT que sales gastando</small></div>
+      <div class="stat"><b id="ahorro">—</b><small>Ahorro sobre el nominal</small></div>
+      <div class="stat"><b id="mejorHora">—</b><small>Mejor hora según el histórico</small></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Tus cuotas</h2>
+    <p class="cap" id="capCuotas">—</p>
+    <div class="scroll">
+      <table id="tCuotas"><thead><tr><th>Vence</th><th>Comercio</th><th class="r">USD</th><th class="r">USDT hoy</th><th>Límite 2×</th><th>Recomendado</th></tr></thead><tbody id="tbCuotas"></tbody></table>
+    </div>
+    <div class="empty" id="vacioCuotas">Sin cuotas cargadas.</div>
+    <p class="note">Pagar al menos un día antes del vencimiento vale 2 puntos por dólar en vez de 1; adelantarse más no suma nada extra. «Límite 2×» es el último día hábil que todavía duplica puntos; «Recomendado» es el día de esa ventana donde se espera la brecha más ancha. El costo en USDT usa la última lectura.</p>
+    <p class="note" id="baseReco"></p>
+  </section>
+
+  <section class="card">
+    <h2>Registrar un pago</h2>
+    <p class="cap">Al guardarlo, la cuota sale de pendientes y pasa a pagadas.</p>
+    <div class="field" style="margin-bottom:12px"><label for="pCuota">Cuota</label><select id="pCuota"></select></div>
+    <div class="row">
+      <div class="field"><label for="pFecha">Día del pago</label><input type="date" id="pFecha"></div>
+      <div class="field"><label for="pBs">Monto pagado en Bs</label><input type="number" id="pBs" inputmode="decimal" step="0.01"></div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label for="pP2p">Tasa P2P a la que vendiste los USDT</label><input type="number" id="pP2p" inputmode="decimal" step="0.0001"></div>
+    <button id="pGuardar">Guardar pago</button>
+    <p class="note" id="pEstado">Si ese día hay lecturas registradas, la tasa se rellena sola con la última.</p>
+  </section>
+
+  <section class="card">
+    <h2>Cuotas pagadas</h2>
+    <p class="cap" id="capPagadas">—</p>
+    <div class="scroll">
+      <table id="tPagadas"><thead><tr><th>Cuota</th><th>Pagada</th><th class="r">Bs</th><th class="r">USDT</th><th class="r">Ahorro</th><th></th></tr></thead><tbody id="tbPagadas"></tbody></table>
+    </div>
+    <div class="empty" id="vacioPagadas">Todavía no has registrado pagos.</div>
+  </section>
+
+  <section class="card" id="cardLlave" style="display:none">
+    <h2>Desbloquear las cuotas</h2>
+    <p class="cap">Tus cuotas viajan cifradas en el repositorio. Escribe la frase una vez en este dispositivo y queda recordada.</p>
+    <div class="field" style="margin-bottom:12px"><label for="frase">Frase</label><input type="password" id="frase" autocomplete="off"></div>
+    <button id="btnAbrir">Desbloquear</button>
+    <p class="note" id="estadoLlave"></p>
+  </section>
+
+  <section class="card" id="cardRespaldo" style="display:none">
+    <h2>Respaldo de cuotas</h2>
+    <p class="cap">Los pagos que registres quedan en este dispositivo. Descarga el archivo y súbelo a datos/cuotas.enc del repositorio para que los otros dispositivos los vean.</p>
+    <button id="btnRespaldo" class="mini">Descargar cuotas.enc</button>
+    <p class="note" id="estadoRespaldo"></p>
+  </section>
+
+  <section class="card">
+    <h2>Lecturas de hoy</h2>
+    <table id="tabla"><thead><tr><th>Hora</th><th class="r">P2P</th><th class="r">Brecha</th><th>Banco</th></tr></thead><tbody id="tbody"></tbody></table>
+    <div class="empty" id="vacio">Sin lecturas de hoy.</div>
+  </section>
+
+</div>
+<script>
+(function(){
+  "use strict";
+  var db=null, dias=[], cuotas=[];
+  var $=function(i){return document.getElementById(i);};
+  var nf=function(n,d){return (n===null||n===undefined||!isFinite(n))?"—":n.toLocaleString("es-VE",{minimumFractionDigits:d,maximumFractionDigits:d});};
+  var hoyISO=function(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  var difDias=function(a,b){return Math.round((Date.parse(b+"T00:00:00")-Date.parse(a+"T00:00:00"))/86400000);};
+  var fmtFecha=function(iso){var p=iso.split("-"),m=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];return p[2]+" "+m[+p[1]-1];};
+
+  function cierre(d){ return d.lecturas.length ? d.lecturas[d.lecturas.length-1] : null; }
+  function brechaCierre(d){ var c=cierre(d); return c?c.brecha:null; }
+
+  /* ---------- gráficos ---------- */
+  function lineChart(pts, opts){
+    if(pts.length<2) return '<div class="empty">Hacen falta al menos dos lecturas.</div>';
+    var W=320,H=opts.h||110,pl=32,pr=8,pt=10,pb=18;
+    var ys=pts.map(function(p){return p.y;}), min=Math.min.apply(null,ys), max=Math.max.apply(null,ys);
+    if(max-min<0.2){max+=0.2;min-=0.2;}
+    var pad=(max-min)*0.15; min-=pad; max+=pad;
+    var xs=pts.map(function(p){return p.x;}), x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs);
+    if(x1===x0) x1=x0+1;
+    var X=function(v){return pl+(v-x0)/(x1-x0)*(W-pl-pr);};
+    var Y=function(v){return pt+(1-(v-min)/(max-min))*(H-pt-pb);};
+    var d=pts.map(function(p,i){return (i?"L":"M")+X(p.x).toFixed(1)+" "+Y(p.y).toFixed(1);}).join(" ");
+    var area=d+" L"+X(pts[pts.length-1].x).toFixed(1)+" "+(H-pb)+" L"+X(pts[0].x).toFixed(1)+" "+(H-pb)+" Z";
+    var last=pts[pts.length-1];
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(opts.alt||"")+'">'+
+      '<path d="'+area+'" fill="var(--slate)" opacity=".08"/>'+
+      '<path d="'+d+'" fill="none" stroke="var(--slate)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<circle cx="'+X(last.x).toFixed(1)+'" cy="'+Y(last.y).toFixed(1)+'" r="3.5" fill="var(--slate)"/>'+
+      '<text class="axis" x="2" y="'+(Y(max)+8).toFixed(1)+'">'+nf(max,2)+'%</text>'+
+      '<text class="axis" x="2" y="'+Y(min).toFixed(1)+'">'+nf(min,2)+'%</text>'+
+      '<text class="axis" x="'+pl+'" y="'+(H-3)+'">'+pts[0].label+'</text>'+
+      '<text class="axis" x="'+(W-pr)+'" y="'+(H-3)+'" text-anchor="end">'+last.label+'</text></svg>';
+  }
+
+  function barChart(items){
+    if(!items.length) return '<div class="empty">Todavía no hay lecturas agrupadas por hora.</div>';
+    var W=320,H=120,pl=28,pr=6,pt=10,pb=20;
+    var vs=items.map(function(i){return i.v;}), min=Math.min.apply(null,vs), max=Math.max.apply(null,vs);
+    if(max-min<0.2){max+=0.1;min-=0.1;}
+    var lo=min-(max-min)*0.25, hi=max+(max-min)*0.1;
+    var bw=(W-pl-pr)/items.length, mejor=Math.max.apply(null,vs);
+    var Y=function(v){return pt+(1-(v-lo)/(hi-lo))*(H-pt-pb);};
+    var b=items.map(function(it,i){
+      var x=pl+i*bw+bw*0.15, w=bw*0.7, y=Y(it.v), h=(H-pb)-y;
+      var col=it.v===mejor?"var(--go)":"var(--slate)";
+      return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" rx="2" fill="'+col+'" opacity="'+(it.v===mejor?1:.55)+'"/>'+
+             '<text class="axis" x="'+(x+w/2).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+it.k+'</text>';
+    }).join("");
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Brecha promedio por hora del día">'+
+      '<text class="axis" x="2" y="'+(Y(max)+4).toFixed(1)+'">'+nf(max,2)+'%</text>'+
+      '<text class="axis" x="2" y="'+(Y(min)+4).toFixed(1)+'">'+nf(min,2)+'%</text>'+b+'</svg>';
+  }
+
+  /* ---------- estadística ---------- */
+  function pendiente(arr){
+    if(arr.length<4) return null;
+    var base=arr[0].fecha,n=arr.length,sx=0,sy=0,sxy=0,sxx=0;
+    for(var i=0;i<n;i++){var x=difDias(base,arr[i].fecha),y=brechaCierre(arr[i]);sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;}
+    var den=n*sxx-sx*sx; return den?((n*sxy-sx*sy)/den):null;
+  }
+  function prom(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:null;}
+
+  function porHora(){
+    var m={};
+    dias.forEach(function(d){
+      d.lecturas.forEach(function(l){
+        var h=String(l.hora).slice(0,2);
+        (m[h]=m[h]||[]).push(l.brecha);
+      });
+    });
+    return Object.keys(m).sort().map(function(h){return {k:h,v:prom(m[h]),n:m[h].length};});
+  }
+
+  function veredicto(hoy,slope,pct,diasRest){
+    if(!hoy) return {c:"flat",t:"Esperando datos",d:"El panel se llena solo a medida que corre el recolector."};
+    if(dias.length<5) return {c:"flat",t:"Acumulando historial ("+dias.length+"/5 días)",d:"Con cinco días cerrados puedo comparar la brecha de hoy contra su rango normal y estimar la tendencia."};
+    if(diasRest!==null&&diasRest<=1) return {c:"go",t:"Paga hoy: no queda margen",d:"La cuota vence ya. La mora cuesta más que cualquier punto de brecha."};
+    var s=0,r=[];
+    if(pct!==null){ if(pct>=75){s+=2;r.push("la brecha está en el "+pct+" % más alto del mes");} else if(pct>=55){s+=1;r.push("está por encima de su promedio");} else if(pct<=25){s-=1;r.push("está entre las más angostas del mes");} }
+    if(slope!==null){ if(slope<=-0.10){s+=2;r.push("viene cerrándose "+nf(Math.abs(slope),2)+" pp por día");} else if(slope<=-0.03){s+=1;r.push("se cierra lentamente");} else if(slope>=0.10){s-=2;r.push("viene abriéndose "+nf(slope,2)+" pp por día");} else if(slope>=0.03){s-=1;r.push("se abre lentamente");} else r.push("está plana"); }
+    if(diasRest!==null&&diasRest<=3) s+=1;
+    var t="Hoy "+r.join(", ")+".";
+    if(s>=2) return {c:"go",t:"Buen día para pagar",d:t+" Convierte y transfiere el mismo día."};
+    if(s<=-2) return {c:"wait",t:"Espera si el vencimiento lo permite",d:t+" Revisa mañana antes de convertir."};
+    return {c:"flat",t:"Día neutro",d:t+" Si vence pronto, paga sin más."};
+  }
+
+  var DIA_ABR=["dom","lun","mar","mié","jue","vie","sáb"];
+  var PESO={1:5,5:4,4:3,3:2,2:1};   // lunes cierra la ventana congelada del BCV; martes la abre
+
+  function isoDe(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+
+  function perfilSemana(){
+    if(dias.length<14) return null;
+    var g={}, tot=[];
+    dias.forEach(function(d){
+      var b=brechaCierre(d); if(!isFinite(b)) return;
+      var w=new Date(d.fecha+"T12:00:00").getDay();
+      (g[w]=g[w]||[]).push(b); tot.push(b);
+    });
+    var m=prom(tot), out={}, ok=0;
+    for(var w=1;w<=5;w++){ if(g[w]&&g[w].length>=2){ out[w]=prom(g[w])-m; ok++; } }
+    return ok>=4?out:null;
+  }
+
+  function mejorFecha(venc,perfil){
+    var cands=[], d=new Date(venc+"T12:00:00");
+    d.setDate(d.getDate()-1);
+    for(var i=0;i<7;i++){
+      var w=d.getDay();
+      if(w>=1&&w<=5) cands.push({iso:isoDe(d),w:w});
+      d.setDate(d.getDate()-1);
+    }
+    if(!cands.length) return null;
+    cands.sort(function(a,b){
+      var sa=perfil?(perfil[a.w]||0):PESO[a.w], sb=perfil?(perfil[b.w]||0):PESO[b.w];
+      if(sb!==sa) return sb-sa;
+      return a.iso<b.iso?1:-1;
+    });
+    return cands[0];
+  }
+
+  function claveDe(c){ return c.vence+"|"+c.comercio+"|"+c.cuota; }
+
+  function guardarCuotas(msg){
+    try{
+      localStorage.setItem(CLAVE,JSON.stringify(cuotas));
+      $("pEstado").textContent=msg||"Guardado en este navegador.";
+    }catch(e){
+      $("pEstado").textContent="Este navegador no permitió guardar las cuotas.";
+    }
+  }
+
+  function llenarSelect(){
+    var s=$("pCuota"), prev=s.value;
+    s.innerHTML="";
+    cuotas.filter(function(c){return !c.pago;}).forEach(function(c){
+      var o=document.createElement("option");
+      o.value=claveDe(c);
+      o.textContent=c.comercio+" "+c.cuota+" · vence "+fmtFecha(c.vence)+" · "+nf(c.usd,2)+" USD";
+      s.appendChild(o);
+    });
+    if(prev) s.value=prev;
+  }
+
+  function tasaDe(fecha){
+    var d=dias.filter(function(x){return x.fecha===fecha;})[0];
+    if(!d||!d.lecturas.length) return null;
+    return d.lecturas[d.lecturas.length-1].p2p;
+  }
+
+  function pintarPagadas(){
+    var tb=$("tbPagadas"); tb.innerHTML="";
+    var pg=cuotas.filter(function(c){return c.pago;}).sort(function(a,b){return a.pago.fecha<b.pago.fecha?1:-1;});
+    if(!pg.length){
+      $("vacioPagadas").style.display="block"; $("tPagadas").style.display="none"; $("capPagadas").textContent="—"; return;
+    }
+    $("vacioPagadas").style.display="none"; $("tPagadas").style.display="table";
+    var tUsd=0,tUsdt=0;
+    pg.forEach(function(c){
+      tUsd+=c.usd; tUsdt+=c.pago.usdt;
+      var tr=document.createElement("tr");
+      tr.innerHTML="<td>"+c.comercio+"<br><small style='color:var(--muted)'>"+c.cuota+"</small></td>"+
+        "<td>"+fmtFecha(c.pago.fecha)+"<br><small style='color:var(--muted)'>"+nf(c.usd,2)+" USD</small></td>"+
+        "<td class='r'>"+nf(c.pago.bs,2)+"</td>"+
+        "<td class='r'>"+nf(c.pago.usdt,2)+"</td>"+
+        "<td class='r best'>"+nf(c.pago.ahorro,2)+"<br><small>"+nf(c.pago.ahorro/c.usd*100,2)+"%</small></td>";
+      var td=document.createElement("td"); td.className="r";
+      var b=document.createElement("button");
+      b.className="mini"; b.textContent="Deshacer";
+      b.addEventListener("click",function(){
+        delete c.pago; pintar();
+        guardarCuotas(c.comercio+" "+c.cuota+" vuelve a pendientes.");
+      });
+      td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+    });
+    var ahorro=tUsd-tUsdt;
+    $("capPagadas").textContent=pg.length+" pagada"+(pg.length===1?"":"s")+" · "+nf(tUsd,2)+" USD nominales cubiertos con "+nf(tUsdt,2)+" USDT · ahorro acumulado "+nf(ahorro,2)+" USDT ("+nf(ahorro/tUsd*100,2)+" %)";
+  }
+
+  function diaPago(iso){
+    var d=new Date(iso+"T12:00:00");
+    d.setDate(d.getDate()-1);
+    while(d.getDay()===0||d.getDay()===6){ d.setDate(d.getDate()-1); }
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+
+  function pintarCuotas(act,bcv){
+    var tb=$("tbCuotas"); tb.innerHTML="";
+    var hoy=hoyISO();
+    var abiertas=cuotas.filter(function(c){return !c.pago;});
+    var pend=abiertas.filter(function(c){return c.vence>=hoy;});
+    if(!abiertas.length){
+      $("vacioCuotas").textContent=cuotas.length?"No queda ninguna cuota pendiente.":"Sin cuotas cargadas.";
+      $("vacioCuotas").style.display="block"; $("tCuotas").style.display="none";
+      $("capCuotas").textContent=cuotas.length?"Todas registradas como pagadas.":"—";
+      $("baseReco").textContent="";
+      return;
+    }
+    $("vacioCuotas").style.display="none"; $("tCuotas").style.display="table";
+    var tUsd=pend.reduce(function(s,c){return s+c.usd;},0);
+    var factor=(act&&bcv)?bcv/act.p2p:null;
+    $("capCuotas").textContent=pend.length+" pendientes · "+nf(tUsd,2)+" USD"+(factor?" · "+nf(tUsd*factor,2)+" USDT a la brecha de ahora":"");
+    var primera=pend.length?pend[0].vence:null;
+    var perfil=perfilSemana();
+    abiertas.forEach(function(c){
+      var tr=document.createElement("tr");
+      var vencida=c.vence<hoy, dr=difDias(hoy,c.vence);
+      if(c.vence===primera) tr.className="prox";
+      var cuando=vencida?"—":(dr===0?"hoy":(dr===1?"mañana":"en "+dr+" d"));
+      var mf=mejorFecha(c.vence,perfil);
+      var celdaMf=mf?(fmtFecha(mf.iso)+"<br><small style='color:var(--muted)'>"+DIA_ABR[mf.w]+"</small>"):"—";
+      tr.innerHTML="<td"+(vencida?" class='dim'":"")+">"+fmtFecha(c.vence)+"<br><small style='color:var(--muted)'>"+cuando+"</small></td>"+
+        "<td"+(vencida?" class='dim'":"")+">"+c.comercio+"<br><small style='color:var(--muted)'>"+c.cuota+"</small></td>"+
+        "<td class='r'>"+nf(c.usd,2)+"</td>"+
+        "<td class='r'>"+(factor?nf(c.usd*factor,2):"—")+"</td>"+
+        "<td class='dim'>"+fmtFecha(diaPago(c.vence))+"</td>"+
+        "<td"+(vencida?" class='dim'":"")+">"+celdaMf+"</td>";
+      tb.appendChild(tr);
+    });
+    $("baseReco").textContent=perfil
+      ? "La fecha recomendada sale del comportamiento medido: con "+dias.length+" días registrados, el panel ya compara la brecha promedio de cada día de la semana y elige el mejor dentro de la ventana."
+      : "Todavía no hay historial suficiente ("+dias.length+" de 14 días), así que la recomendación usa el razonamiento estructural: el BCV queda congelado de viernes a lunes, por lo que el lunes suele traer la brecha más ancha. Cuando haya datos, esta columna pasa a calcularse con ellos.";
+  }
+
+  /* ---------- render ---------- */
+  function pintar(){
+    var hoy=dias.length?dias[dias.length-1]:null;
+    var act=hoy?cierre(hoy):null;
+    if(act){
+      $("heroGap").innerHTML=nf(act.brecha,2)+'<span>%</span>';
+      $("heroDate").textContent="Última lectura: "+fmtFecha(hoy.fecha)+" a las "+act.hora;
+      $("heroBcv").textContent=nf(hoy.bcv,2);
+      $("heroP2p").textContent=nf(act.p2p,2);
+    }
+    var v30=dias.slice(-30), v7=dias.slice(-7), v14=dias.slice(-14);
+    var slope=pendiente(v14);
+    var cs=v30.map(brechaCierre).filter(isFinite);
+    var pct=(act&&cs.length>=5)?Math.round(cs.filter(function(b){return b<act.brecha;}).length/cs.length*100):null;
+    var diasRest=$("dias").value===""?null:Math.max(0,parseInt($("dias").value,10)||0);
+    var vd=veredicto(hoy,slope,pct,diasRest);
+    $("verdict").className="verdict "+vd.c;
+    $("verdict").innerHTML="<b>"+vd.t+"</b><p>"+vd.d+"</p>";
+
+    // intradía
+    if(hoy){
+      $("capIntra").textContent=fmtFecha(hoy.fecha)+" · "+hoy.lecturas.length+" lectura"+(hoy.lecturas.length===1?"":"s")+" · BCV fijo en "+nf(hoy.bcv,2);
+      $("chartIntra").innerHTML=lineChart(hoy.lecturas.map(function(l){
+        var p=String(l.hora).split(":");
+        return {x:(+p[0])+(+p[1])/60,y:l.brecha,label:l.hora};
+      }),{alt:"Brecha de hoy hora por hora"});
+    }
+
+    // por hora
+    var ph=porHora();
+    $("chartHoras").innerHTML=barChart(ph);
+    if(ph.length>=3){
+      var mejor=ph.slice().sort(function(a,b){return b.v-a.v;})[0];
+      $("notaHoras").textContent="Con "+dias.length+" día"+(dias.length===1?"":"s")+" de historial, la hora más favorable es alrededor de las "+mejor.k+":00, con "+nf(mejor.v,2)+" % de brecha promedio. Hacen falta varios días para que el patrón sea confiable.";
+      $("mejorHora").textContent=mejor.k+":00";
+    } else { $("notaHoras").textContent="Se necesitan lecturas de varias horas para comparar."; }
+
+    // diaria
+    $("chartDias").innerHTML=lineChart(v30.map(function(d){
+      return {x:difDias(v30[0].fecha,d.fecha),y:brechaCierre(d),label:fmtFecha(d.fecha)};
+    }).filter(function(p){return isFinite(p.y);}),{alt:"Brecha de cierre por día"});
+    $("sma7").textContent=v7.length?nf(prom(v7.map(brechaCierre)),2)+"%":"—";
+    $("sma30").textContent=v30.length?nf(prom(cs),2)+"%":"—";
+    $("percentil").textContent=pct===null?"—":pct+"%";
+    $("rango").textContent=cs.length?nf(Math.min.apply(null,cs),2)+"% – "+nf(Math.max.apply(null,cs),2)+"%":"—";
+    $("tendencia").textContent=slope===null?"Tendencia: hacen falta al menos cuatro días cerrados.":
+      "Tendencia de "+v14.length+" días: "+(slope>0.03?"abriéndose":(slope<-0.03?"cerrándose":"estable"))+" a "+nf(slope,2)+" pp por día. Proyección a 7 días: "+nf(Math.max(0,brechaCierre(hoy)+slope*7),1)+" %. Es extrapolación lineal, no pronóstico.";
+
+    // calculadora
+    var c=parseFloat($("cuota").value);
+    if(act&&isFinite(c)&&c>0){
+      var bs=c*hoy.bcv, usdt=bs/act.p2p;
+      $("costoBs").textContent=nf(bs,2); $("costoUsdt").textContent=nf(usdt,2);
+      $("ahorro").textContent=nf((1-usdt/c)*100,2)+"%";
+    } else { $("costoBs").textContent=$("costoUsdt").textContent=$("ahorro").textContent="—"; }
+
+    pintarCuotas(act,hoy?hoy.bcv:null);
+    pintarPagadas();
+    llenarSelect();
+
+    // tabla
+    var tb=$("tbody"); tb.innerHTML="";
+    if(hoy&&hoy.lecturas.length){
+      var mx=Math.max.apply(null,hoy.lecturas.map(function(l){return l.brecha;}));
+      hoy.lecturas.slice().reverse().forEach(function(l){
+        var tr=document.createElement("tr");
+        tr.innerHTML="<td>"+l.hora+"</td><td class='r'>"+nf(l.p2p,2)+"</td><td class='r "+(l.brecha===mx?"best":"")+"'>"+nf(l.brecha,2)+"%</td><td>"+(l.banco||"")+"</td>";
+        tb.appendChild(tr);
+      });
+    }
+    var hay=!!(hoy&&hoy.lecturas.length);
+    $("vacio").style.display=hay?"none":"block";
+    $("tabla").style.display=hay?"table":"none";
+  }
+
+  var CLAVE="cuotas-cashea", CLAVE_FRASE="frase-cashea", ITER=200000;
+  var b64a=function(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b)));};
+  var ab64=function(t){var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+
+  function derivar(frase,sal){
+    var enc=new TextEncoder();
+    return crypto.subtle.importKey("raw",enc.encode(frase),{name:"PBKDF2"},false,["deriveKey"])
+      .then(function(k){
+        return crypto.subtle.deriveKey({name:"PBKDF2",salt:sal,iterations:ITER,hash:"SHA-256"},
+          k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+      });
+  }
+
+  function descifrar(p,frase){
+    return derivar(frase,ab64(p.sal)).then(function(k){
+      return crypto.subtle.decrypt({name:"AES-GCM",iv:ab64(p.iv)},k,ab64(p.ct));
+    }).then(function(buf){ return JSON.parse(new TextDecoder().decode(buf)); });
+  }
+
+  function cifrar(lista,frase){
+    var sal=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+    return derivar(frase,sal).then(function(k){
+      return crypto.subtle.encrypt({name:"AES-GCM",iv:iv},k,new TextEncoder().encode(JSON.stringify(lista)));
+    }).then(function(ct){
+      return JSON.stringify({v:1,kdf:"PBKDF2-SHA256",iter:ITER,sal:b64a(sal),iv:b64a(iv),ct:b64a(ct)});
+    });
+  }
+
+  function leerLocal(){
+    try{ var t=localStorage.getItem(CLAVE); return t?JSON.parse(t):[]; }catch(e){ return []; }
+  }
+  function frasePropia(){
+    try{ return localStorage.getItem(CLAVE_FRASE)||""; }catch(e){ return ""; }
+  }
+
+  function abrirCuotas(frase,recordar){
+    return fetch("datos/cuotas.enc?t="+Date.now()).then(function(r){
+      if(!r.ok) throw new Error("sin archivo");
+      return r.json();
+    }).then(function(p){
+      return descifrar(p,frase);
+    }).then(function(lista){
+      var locales=leerLocal(), pagos={};
+      locales.forEach(function(c){ if(c.pago) pagos[c.vence+"|"+c.comercio+"|"+c.cuota]=c.pago; });
+      lista.forEach(function(c){
+        var p=pagos[c.vence+"|"+c.comercio+"|"+c.cuota];
+        if(p&&!c.pago) c.pago=p;
+      });
+      cuotas=lista.sort(function(a,b){return a.vence<b.vence?-1:1;});
+      try{
+        localStorage.setItem(CLAVE,JSON.stringify(cuotas));
+        if(recordar) localStorage.setItem(CLAVE_FRASE,frase);
+      }catch(e){}
+      $("cardLlave").style.display="none";
+      $("cardRespaldo").style.display="";
+      pintar();
+      return true;
+    });
+  }
+
+  function cargar(){
+    return fetch("datos/datos.json?t="+Date.now()).then(function(r){
+      if(!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function(j){
+      dias=(j.dias||[]);
+      if(!cuotas.length) cuotas=leerLocal().slice().sort(function(a,b){return a.vence<b.vence?-1:1;});
+      pintar();
+      if(j.actualizado) $("capNube").textContent="Última corrida del recolector: "+j.actualizado+". Consulta BCV y Binance cada hora, de 9 a 20.";
+    });
+  }
+
+  function refrescar(){
+    var b=$("btnRefrescar");
+    b.disabled=true; $("estadoRef").textContent="Buscando lecturas nuevas…";
+    var antes=dias.reduce(function(n,d){return n+d.lecturas.length;},0);
+    cargar().then(function(){
+      var ahora=dias.reduce(function(n,d){return n+d.lecturas.length;},0);
+      var d=dias.length?dias[dias.length-1]:null, l=d&&d.lecturas.length?d.lecturas[d.lecturas.length-1]:null;
+      $("estadoRef").textContent=(ahora>antes?(ahora-antes)+" lectura"+(ahora-antes===1?"":"s")+" nueva"+(ahora-antes===1?"":"s")+". ":"Sin lecturas nuevas todavía. ")+
+        (l?("Última: "+l.hora+" con "+nf(l.brecha,2)+" %."):"");
+    }).catch(function(){
+      $("estadoRef").textContent="No pude leer datos/datos.json. ¿Ya corrió el recolector al menos una vez?";
+    }).then(function(){ b.disabled=false; });
+  }
+
+  $("btnRecargar").addEventListener("click",function(){
+    var b=this;
+    b.disabled=true; $("selloRecarga").textContent="Buscando cambios…";
+    Promise.resolve(cargar()).then(function(){
+      var d=new Date();
+      $("selloRecarga").textContent="Actualizado "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+    }).catch(function(){
+      $("selloRecarga").textContent="No se pudo leer la base.";
+    }).then(function(){ b.disabled=false; });
+  });
+
+  $("btnAbrir").addEventListener("click",function(){
+    var f=$("frase").value;
+    if(!f){ $("estadoLlave").textContent="Escribe la frase."; return; }
+    $("estadoLlave").textContent="Descifrando…";
+    abrirCuotas(f,true).catch(function(){
+      $("estadoLlave").textContent="La frase no abre el archivo, o datos/cuotas.enc todavía no está en el repositorio.";
+    });
+  });
+
+  $("btnRespaldo").addEventListener("click",function(){
+    var f=frasePropia();
+    if(!f){ $("estadoRespaldo").textContent="Primero desbloquea las cuotas."; return; }
+    cifrar(cuotas,f).then(function(txt){
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+      a.download="cuotas.enc"; a.click(); URL.revokeObjectURL(a.href);
+      $("estadoRespaldo").textContent="Descargado. Súbelo a datos/cuotas.enc en el repositorio.";
+    }).catch(function(){ $("estadoRespaldo").textContent="No se pudo generar el respaldo."; });
+  });
+
+  $("btnRefrescar").addEventListener("click",refrescar);
+
+  ["cuota","dias"].forEach(function(i){$(i).addEventListener("input",pintar);});
+
+  $("pFecha").value=hoyISO();
+  $("pFecha").addEventListener("change",function(){
+    var t=tasaDe($("pFecha").value);
+    if(t) $("pP2p").value=t;
+  });
+  $("pGuardar").addEventListener("click",function(){
+    var k=$("pCuota").value, f=$("pFecha").value||hoyISO();
+    var bs=parseFloat($("pBs").value), p2p=parseFloat($("pP2p").value);
+    var c=cuotas.filter(function(x){return claveDe(x)===k;})[0];
+    if(!c){ $("pEstado").textContent="Elige la cuota que pagaste."; return; }
+    if(!isFinite(bs)||bs<=0){ $("pEstado").textContent="Falta el monto en bolívares que transferiste."; return; }
+    if(!isFinite(p2p)||p2p<=0){
+      var t=tasaDe(f);
+      if(t){ p2p=t; } else { $("pEstado").textContent="Ese día no hay lecturas, así que necesito la tasa P2P a la que vendiste."; return; }
+    }
+    var usdt=bs/p2p;
+    c.pago={fecha:f,bs:bs,p2p:p2p,usdt:usdt,ahorro:c.usd-usdt};
+    $("pBs").value=""; $("pP2p").value="";
+    pintar();
+    guardarCuotas(c.comercio+" "+c.cuota+" registrada: "+nf(usdt,2)+" USDT, ahorro de "+nf(c.usd-usdt,2)+" ("+nf((c.usd-usdt)/c.usd*100,2)+" %).");
+  });
+
+  pintar();
+  cargar().catch(function(){ $("estadoRef").textContent="No pude leer datos/datos.json. ¿Ya corrió el recolector al menos una vez?"; });
+
+  (function(){
+    var f=frasePropia();
+    if(f){
+      abrirCuotas(f,false).catch(function(){ $("cardLlave").style.display=""; });
+    } else {
+      cuotas=leerLocal();
+      $("cardLlave").style.display="";
+      pintar();
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
