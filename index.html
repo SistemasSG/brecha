@@ -212,6 +212,19 @@
   </section>
 
   <section class="card">
+    <h2>Historial de lecturas</h2>
+    <p class="cap" id="capHist">—</p>
+    <div class="scroll">
+      <table id="tCobertura"><thead><tr><th>Día</th><th class="r">Lecturas</th><th>Horario</th><th class="r">Brecha</th></tr></thead><tbody id="tbCobertura"></tbody></table>
+    </div>
+    <p class="note">Los días sin lecturas aparecen marcados: es la forma de ver si el recolector se quedó dormido.</p>
+    <div class="scroll" style="margin-top:14px">
+      <table id="tLog"><thead><tr><th>Fecha</th><th>Hora</th><th class="r">BCV</th><th class="r">P2P</th><th class="r">Brecha</th><th>Banco</th></tr></thead><tbody id="tbLog"></tbody></table>
+    </div>
+    <p class="note" id="notaLog"></p>
+  </section>
+
+  <section class="card">
     <h2>Lecturas de hoy</h2>
     <table id="tabla"><thead><tr><th>Hora</th><th class="r">P2P</th><th class="r">Brecha</th><th>Banco</th></tr></thead><tbody id="tbody"></tbody></table>
     <div class="empty" id="vacio">Sin lecturas de hoy.</div>
@@ -446,6 +459,44 @@
       : "Todavía no hay historial suficiente ("+dias.length+" de 14 días), así que la recomendación usa el razonamiento estructural: el BCV queda congelado de viernes a lunes, por lo que el lunes suele traer la brecha más ancha. Cuando haya datos, esta columna pasa a calcularse con ellos.";
   }
 
+  var SEM=["dom","lun","mar","mié","jue","vie","sáb"];
+
+  function pintarHistorial(){
+    var tb=$("tbCobertura"); tb.innerHTML="";
+    if(!dias.length){ $("capHist").textContent="Sin lecturas todavía."; $("notaLog").textContent=""; $("tbLog").innerHTML=""; return; }
+    var mapa={}; dias.forEach(function(d){ mapa[d.fecha]=d; });
+    var ini=new Date(dias[0].fecha+"T12:00:00"), fin=new Date(dias[dias.length-1].fecha+"T12:00:00");
+    var huecos=0, total=0, filas=[];
+    for(var d=new Date(fin); d>=ini; d.setDate(d.getDate()-1)){
+      var iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      var dd=mapa[iso], w=d.getDay(), fds=(w===0||w===6);
+      if(dd&&dd.lecturas.length){
+        total+=dd.lecturas.length;
+        var bs=dd.lecturas.map(function(l){return l.brecha;});
+        filas.push("<tr><td"+(fds?" class='dim'":"")+">"+fmtFecha(iso)+"<br><small style='color:var(--muted)'>"+SEM[w]+"</small></td>"+
+          "<td class='r'>"+dd.lecturas.length+"</td>"+
+          "<td>"+dd.lecturas[0].hora+" – "+dd.lecturas[dd.lecturas.length-1].hora+"</td>"+
+          "<td class='r'>"+nf(Math.min.apply(null,bs),2)+" – "+nf(Math.max.apply(null,bs),2)+"%</td></tr>");
+      } else {
+        huecos++;
+        filas.push("<tr><td class='dim'>"+fmtFecha(iso)+"<br><small style='color:var(--muted)'>"+SEM[w]+"</small></td>"+
+          "<td class='r dim'>0</td><td class='dim' colspan='2'>sin lecturas</td></tr>");
+      }
+    }
+    tb.innerHTML=filas.join("");
+    $("capHist").textContent=total+" lecturas en "+dias.length+" día"+(dias.length===1?"":"s")+
+      (huecos?" · "+huecos+" día"+(huecos===1?"":"s")+" sin registrar":" · sin huecos");
+
+    var log=[];
+    dias.forEach(function(dd){ dd.lecturas.forEach(function(l){ log.push({f:dd.fecha,bcv:dd.bcv,l:l}); }); });
+    log.reverse();
+    $("tbLog").innerHTML=log.slice(0,60).map(function(r){
+      return "<tr><td>"+fmtFecha(r.f)+"</td><td>"+r.l.hora+"</td><td class='r'>"+nf(r.bcv,2)+
+        "</td><td class='r'>"+nf(r.l.p2p,2)+"</td><td class='r'>"+nf(r.l.brecha,2)+"%</td><td class='dim'>"+(r.l.banco||"")+"</td></tr>";
+    }).join("");
+    $("notaLog").textContent=log.length>60?("Mostrando las 60 lecturas más recientes de "+log.length+"."):"";
+  }
+
   /* ---------- render ---------- */
   function pintar(){
     var hoy=dias.length?dias[dias.length-1]:null;
@@ -502,6 +553,7 @@
       $("ahorro").textContent=nf((1-usdt/c)*100,2)+"%";
     } else { $("costoBs").textContent=$("costoUsdt").textContent=$("ahorro").textContent="—"; }
 
+    pintarHistorial();
     pintarCuotas(act,hoy?hoy.bcv:null);
     pintarPagadas();
     llenarSelect();

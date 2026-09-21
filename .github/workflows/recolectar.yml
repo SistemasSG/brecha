@@ -2,9 +2,12 @@ name: Recolectar brecha
 
 on:
   schedule:
-    # 12 corridas: 9:00 a 20:00 hora de Caracas (UTC-4)
-    - cron: '0 13-23 * * *'
-    - cron: '0 0 * * *'
+    # 24 intentos entre las 9:00 y las 20:00 de Caracas (UTC-4).
+    # GitHub descarta corridas programadas cuando hay carga, y el minuto :00
+    # es el más congestionado; pedir el doble en minutos poco usados
+    # hace que aterricen entre 12 y 18.
+    - cron: '7,37 13-23 * * *'
+    - cron: '7,37 0 * * *'
   workflow_dispatch:          # botón "Run workflow" para forzar una lectura
 
 permissions:
