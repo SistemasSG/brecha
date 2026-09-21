@@ -247,7 +247,7 @@
   /* ---------- gráficos ---------- */
   function lineChart(pts, opts){
     if(pts.length<2) return '<div class="empty">Hacen falta al menos dos lecturas.</div>';
-    var W=320,H=opts.h||110,pl=32,pr=8,pt=10,pb=18;
+    var W=320,H=opts.h||110,pl=32,pr=8,pt=opts.etiquetas?22:10,pb=18;
     var ys=pts.map(function(p){return p.y;}), min=Math.min.apply(null,ys), max=Math.max.apply(null,ys);
     if(max-min<0.2){max+=0.2;min-=0.2;}
     var pad=(max-min)*0.15; min-=pad; max+=pad;
@@ -258,6 +258,18 @@
     var d=pts.map(function(p,i){return (i?"L":"M")+X(p.x).toFixed(1)+" "+Y(p.y).toFixed(1);}).join(" ");
     var area=d+" L"+X(pts[pts.length-1].x).toFixed(1)+" "+(H-pb)+" L"+X(pts[0].x).toFixed(1)+" "+(H-pb)+" Z";
     var last=pts[pts.length-1];
+    var etiquetas="";
+    if(opts.etiquetas){
+      var paso=Math.ceil(pts.length/8);
+      pts.forEach(function(p,i){
+        if(i%paso!==0 && i!==pts.length-1) return;
+        var x=X(p.x), y=Y(p.y);
+        var ancla=i===0?"start":(i===pts.length-1?"end":"middle");
+        etiquetas+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.2" fill="var(--slate)"/>'+
+          '<text x="'+x.toFixed(1)+'" y="'+(y-7).toFixed(1)+'" text-anchor="'+ancla+'" '+
+          'style="font-size:9.5px;font-weight:600;fill:var(--ink);font-family:var(--ui)">'+nf(p.y,2)+'</text>';
+      });
+    }
     return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(opts.alt||"")+'">'+
       '<path d="'+area+'" fill="var(--slate)" opacity=".08"/>'+
       '<path d="'+d+'" fill="none" stroke="var(--slate)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
@@ -265,7 +277,8 @@
       '<text class="axis" x="2" y="'+(Y(max)+8).toFixed(1)+'">'+nf(max,2)+'%</text>'+
       '<text class="axis" x="2" y="'+Y(min).toFixed(1)+'">'+nf(min,2)+'%</text>'+
       '<text class="axis" x="'+pl+'" y="'+(H-3)+'">'+pts[0].label+'</text>'+
-      '<text class="axis" x="'+(W-pr)+'" y="'+(H-3)+'" text-anchor="end">'+last.label+'</text></svg>';
+      '<text class="axis" x="'+(W-pr)+'" y="'+(H-3)+'" text-anchor="end">'+last.label+'</text>'+
+      etiquetas+'</svg>';
   }
 
   function barChart(items){
@@ -537,7 +550,7 @@
     // diaria
     $("chartDias").innerHTML=lineChart(v30.map(function(d){
       return {x:difDias(v30[0].fecha,d.fecha),y:brechaCierre(d),label:fmtFecha(d.fecha)};
-    }).filter(function(p){return isFinite(p.y);}),{alt:"Brecha de cierre por día"});
+    }).filter(function(p){return isFinite(p.y);}),{alt:"Brecha de cierre por día",etiquetas:true,h:135});
     $("sma7").textContent=v7.length?nf(prom(v7.map(brechaCierre)),2)+"%":"—";
     $("sma30").textContent=v30.length?nf(prom(cs),2)+"%":"—";
     $("percentil").textContent=pct===null?"—":pct+"%";
