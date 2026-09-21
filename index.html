@@ -688,7 +688,12 @@
       return r.json();
     }).then(function(p){
       return descifrar(p,frase);
-    }).then(function(lista){
+    }).then(function(datos){
+      var lista=Array.isArray(datos)?datos:(datos.lista||[]);
+      if(!Array.isArray(datos)&&datos.compras){
+        compras=datos.compras;
+        try{ localStorage.setItem(CLAVE_COMPRAS,JSON.stringify(compras)); }catch(e){}
+      }
       var locales=leerLocal(), pagos={};
       locales.forEach(function(c){ if(c.pago) pagos[c.vence+"|"+c.comercio+"|"+c.cuota]=c.pago; });
       lista.forEach(function(c){
@@ -757,7 +762,7 @@
   $("btnRespaldo").addEventListener("click",function(){
     var f=frasePropia();
     if(!f){ $("estadoRespaldo").textContent="Primero desbloquea las cuotas."; return; }
-    cifrar(cuotas,f).then(function(txt){
+    cifrar({lista:cuotas,compras:compras},f).then(function(txt){
       var a=document.createElement("a");
       a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
       a.download="cuotas.enc"; a.click(); URL.revokeObjectURL(a.href);
