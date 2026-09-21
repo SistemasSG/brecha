@@ -164,10 +164,18 @@
   </section>
 
   <section class="card">
+    <h2>Brecha del día de compra</h2>
+    <p class="cap">Referencia por compra. La columna «vs compra» de la tabla de cuotas te dice cuánto mejor o peor estás pagando hoy respecto a ese día. Se guarda en este navegador.</p>
+    <div id="filasCompra"></div>
+    <button id="btnCompras" class="mini">Guardar referencias</button>
+    <p class="note" id="estadoCompras"></p>
+  </section>
+
+  <section class="card">
     <h2>Tus cuotas</h2>
     <p class="cap" id="capCuotas">—</p>
     <div class="scroll">
-      <table id="tCuotas"><thead><tr><th>Vence</th><th>Comercio</th><th class="r">USD</th><th class="r">USDT hoy</th><th>Límite 2×</th><th>Recomendado</th></tr></thead><tbody id="tbCuotas"></tbody></table>
+      <table id="tCuotas"><thead><tr><th>Vence</th><th>Comercio</th><th class="r">USD</th><th class="r">USDT hoy</th><th>Límite 2×</th><th>Recomendado</th><th class="r">vs compra</th></tr></thead><tbody id="tbCuotas"></tbody></table>
     </div>
     <div class="empty" id="vacioCuotas">Sin cuotas cargadas.</div>
     <p class="note">Pagar al menos un día antes del vencimiento vale 2 puntos por dólar en vez de 1; adelantarse más no suma nada extra. «Límite 2×» es el último día hábil que todavía duplica puntos; «Recomendado» es el día de esa ventana donde se espera la brecha más ancha. El costo en USDT usa la última lectura.</p>
@@ -369,6 +377,57 @@
     return cands[0];
   }
 
+  var CLAVE_COMPRAS="compras-cashea", compras={};
+
+  function leerCompras(){
+    try{ var t=localStorage.getItem(CLAVE_COMPRAS); return t?JSON.parse(t):{}; }catch(e){ return {}; }
+  }
+
+  function comerciosUnicos(){
+    var v=[], vistos={};
+    cuotas.forEach(function(c){ if(!vistos[c.comercio]){ vistos[c.comercio]=1; v.push(c.comercio); } });
+    return v;
+  }
+
+  function pintarCompras(){
+    var cont=$("filasCompra"), lista=comerciosUnicos();
+    if(!lista.length){ cont.innerHTML='<p class="note">Desbloquea las cuotas primero.</p>'; return; }
+    if(cont.dataset.pintado===lista.join("|")) return;
+    cont.dataset.pintado=lista.join("|");
+    cont.innerHTML=lista.map(function(m){
+      var r=compras[m]||{};
+      return '<div class="row"><div class="field"><label for="cf_'+m+'">'+m+' · fecha de compra</label>'+
+        '<input type="date" id="cf_'+m+'" value="'+(r.fecha||"")+'"></div>'+
+        '<div class="field"><label for="cb_'+m+'">Brecha ese día (%)</label>'+
+        '<input type="number" step="0.01" inputmode="decimal" id="cb_'+m+'" value="'+(r.brecha!==undefined?r.brecha:"")+'"></div></div>';
+    }).join("");
+  }
+
+  function guardarCompras(){
+    comerciosUnicos().forEach(function(m){
+      var f=$("cf_"+m), b=$("cb_"+m);
+      if(!f||!b) return;
+      var v=parseFloat(b.value);
+      if(isFinite(v)) compras[m]={fecha:f.value||"",brecha:v}; else delete compras[m];
+    });
+    pintar();
+    try{
+      localStorage.setItem(CLAVE_COMPRAS,JSON.stringify(compras));
+      $("estadoCompras").textContent="Referencias guardadas en este navegador.";
+    }catch(e){
+      $("estadoCompras").textContent="Este navegador no permitió guardarlas.";
+    }
+  }
+
+  function celdaVs(act,c){
+    var r=compras[c.comercio];
+    if(!act||!r||!isFinite(r.brecha)) return "<span class='dim'>—</span>";
+    var d=act.brecha-r.brecha;
+    var col=d>=0?"var(--go)":"var(--wait)";
+    return "<span style='color:"+col+";font-weight:600'>"+(d>=0?"+":"")+nf(d,2)+"</span>"+
+      "<br><small style='color:var(--muted)'>ref "+nf(r.brecha,2)+"%</small>";
+  }
+
   function claveDe(c){ return c.vence+"|"+c.comercio+"|"+c.cuota; }
 
   function guardarCuotas(msg){
@@ -464,7 +523,8 @@
         "<td class='r'>"+nf(c.usd,2)+"</td>"+
         "<td class='r'>"+(factor?nf(c.usd*factor,2):"—")+"</td>"+
         "<td class='dim'>"+fmtFecha(diaPago(c.vence))+"</td>"+
-        "<td"+(vencida?" class='dim'":"")+">"+celdaMf+"</td>";
+        "<td"+(vencida?" class='dim'":"")+">"+celdaMf+"</td>"+
+        "<td class='r'>"+celdaVs(act,c)+"</td>";
       tb.appendChild(tr);
     });
     $("baseReco").textContent=perfil
@@ -567,6 +627,7 @@
     } else { $("costoBs").textContent=$("costoUsdt").textContent=$("ahorro").textContent="—"; }
 
     pintarHistorial();
+    pintarCompras();
     pintarCuotas(act,hoy?hoy.bcv:null);
     pintarPagadas();
     llenarSelect();
@@ -652,6 +713,7 @@
       return r.json();
     }).then(function(j){
       dias=(j.dias||[]);
+      compras=leerCompras();
       if(!cuotas.length) cuotas=leerLocal().slice().sort(function(a,b){return a.vence<b.vence?-1:1;});
       pintar();
       if(j.actualizado) $("capNube").textContent="Última corrida del recolector: "+j.actualizado+". Consulta BCV y Binance cada hora, de 9 a 20.";
@@ -703,6 +765,7 @@
     }).catch(function(){ $("estadoRespaldo").textContent="No se pudo generar el respaldo."; });
   });
 
+  $("btnCompras").addEventListener("click",guardarCompras);
   $("btnRefrescar").addEventListener("click",refrescar);
 
   ["cuota","dias"].forEach(function(i){$(i).addEventListener("input",pintar);});
