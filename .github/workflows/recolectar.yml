@@ -2,13 +2,14 @@ name: Recolectar brecha
 
 on:
   schedule:
-    # 24 intentos entre las 9:00 y las 20:00 de Caracas (UTC-4).
-    # GitHub descarta corridas programadas cuando hay carga, y el minuto :00
-    # es el más congestionado; pedir el doble en minutos poco usados
-    # hace que aterricen entre 12 y 18.
-    - cron: '7,37 13-23 * * *'
-    - cron: '7,37 0 * * *'
-  workflow_dispatch:          # botón "Run workflow" para forzar una lectura
+    # Tres arranques al dia (UTC). Cada corrida mide cada 30 min durante ~4 h,
+    # asi que basta con que uno arranque para cubrir buena parte del dia.
+    # GitHub retrasa o descarta tareas programadas en repos gratuitos; este
+    # diseno lo tolera porque no depende de un disparo por lectura.
+    - cron: '7 13 * * *'    # 9:07 Caracas
+    - cron: '7 17 * * *'    # 13:07 Caracas
+    - cron: '7 21 * * *'    # 17:07 Caracas
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,6 +21,7 @@ concurrency:
 jobs:
   recolectar:
     runs-on: ubuntu-latest
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
 
@@ -30,17 +32,24 @@ jobs:
       - name: Instalar dependencias
         run: pip install requests
 
-      - name: Consultar BCV y Binance
-        run: python recolectar.py
-
-      - name: Guardar la lectura
+      - name: Medir cada 30 minutos
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add datos
-          if git diff --staged --quiet; then
-            echo "Sin cambios que guardar."
-          else
-            git commit -m "lectura $(TZ=America/Caracas date +%Y-%m-%d\ %H:%M)"
-            git push
-          fi
+          for i in $(seq 1 9); do
+            h=$(TZ=America/Caracas date +%H)
+            if [ "$h" -ge 9 ] && [ "$h" -le 20 ]; then
+              python recolectar.py || echo "ciclo $i sin datos"
+              git pull --rebase --quiet || true
+              git add datos
+              if git diff --staged --quiet; then
+                echo "ciclo $i: nada que guardar"
+              else
+                git commit -q -m "lectura $(TZ=America/Caracas date +'%Y-%m-%d %H:%M')"
+                git push -q || echo "push fallido, se reintenta en el proximo ciclo"
+              fi
+            else
+              echo "ciclo $i: fuera de horario ($h h Caracas), no se mide"
+            fi
+            if [ "$i" -lt 9 ]; then sleep 1800; fi
+          done
