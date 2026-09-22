@@ -2,13 +2,11 @@ name: Recolectar brecha
 
 on:
   schedule:
-    # Tres arranques al dia (UTC). Cada corrida mide cada 30 min durante ~4 h,
-    # asi que basta con que uno arranque para cubrir buena parte del dia.
-    # GitHub retrasa o descarta tareas programadas en repos gratuitos; este
-    # diseno lo tolera porque no depende de un disparo por lectura.
-    - cron: '7 13 * * *'    # 9:07 Caracas
-    - cron: '7 17 * * *'    # 13:07 Caracas
-    - cron: '7 21 * * *'    # 17:07 Caracas
+    # Un intento cada hora. GitHub descarta o retrasa muchos, pero basta con
+    # que uno arranque: cada corrida mide cada 30 min durante ~4,5 h, y la
+    # siguiente que llegue toma el relevo al terminar (concurrency encola una).
+    # El recolector no repite si la ultima lectura tiene menos de 20 min.
+    - cron: '7 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -34,6 +32,11 @@ jobs:
 
       - name: Medir cada 30 minutos
         run: |
+          h=$(TZ=America/Caracas date +%H)
+          if [ "$h" -lt 8 ] || [ "$h" -gt 20 ]; then
+            echo "Fuera de horario ($h h Caracas): esta corrida no hace nada."
+            exit 0
+          fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for i in $(seq 1 9); do

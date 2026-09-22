@@ -98,6 +98,16 @@ def escribir_json(filas):
 
 def main():
     os.makedirs(DIR_DATOS, exist_ok=True)
+    previas = filas_csv()
+    if previas and '--forzar' not in sys.argv:
+        ult = previas[-1]
+        try:
+            t = datetime.strptime(ult['fecha'] + ' ' + ult['hora'], '%Y-%m-%d %H:%M').replace(tzinfo=CARACAS)
+            if (datetime.now(CARACAS) - t).total_seconds() < 20 * 60:
+                print('Ya hay una lectura de las %s; no se repite.' % ult['hora'])
+                return 0
+        except (KeyError, ValueError):
+            pass
     bcv, fuente = tasa_bcv()
     p2p, banco = precio_binance()
     if not bcv or not p2p:
