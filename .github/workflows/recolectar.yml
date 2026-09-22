@@ -21,9 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0        # historial completo: el rebase nunca falla por clon superficial
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -39,17 +41,30 @@ jobs:
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          vacios=0
           for i in $(seq 1 9); do
             h=$(TZ=America/Caracas date +%H)
             if [ "$h" -ge 9 ] && [ "$h" -le 20 ]; then
-              python recolectar.py || echo "ciclo $i sin datos"
-              git pull --rebase --quiet || true
+              python recolectar.py || echo "ciclo $i: el recolector fallo"
+              git pull --rebase --quiet || echo "ciclo $i: pull con problemas"
               git add datos
               if git diff --staged --quiet; then
                 echo "ciclo $i: nada que guardar"
+                vacios=$((vacios+1))
               else
                 git commit -q -m "lectura $(TZ=America/Caracas date +'%Y-%m-%d %H:%M')"
-                git push -q || echo "push fallido, se reintenta en el proximo ciclo"
+                if git push -q; then
+                  echo "ciclo $i: lectura guardada"
+                  vacios=0
+                else
+                  echo "ciclo $i: push fallido"
+                  git reset -q --soft HEAD~1
+                  vacios=$((vacios+1))
+                fi
+              fi
+              if [ "$vacios" -ge 3 ]; then
+                echo "Tres ciclos seguidos sin guardar: esta corrida se rinde y libera la cola."
+                exit 0
               fi
             else
               echo "ciclo $i: fuera de horario ($h h Caracas), no se mide"

@@ -539,6 +539,7 @@
     if(!dias.length){ $("capHist").textContent="Sin lecturas todavía."; $("notaLog").textContent=""; $("tbLog").innerHTML=""; return; }
     var mapa={}; dias.forEach(function(d){ mapa[d.fecha]=d; });
     var ini=new Date(dias[0].fecha+"T12:00:00"), fin=new Date(dias[dias.length-1].fecha+"T12:00:00");
+    var hoyD=new Date(hoyISO()+"T12:00:00"); if(hoyD>fin) fin=hoyD;
     var huecos=0, total=0, filas=[];
     for(var d=new Date(fin); d>=ini; d.setDate(d.getDate()-1)){
       var iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -553,7 +554,7 @@
       } else {
         huecos++;
         filas.push("<tr><td class='dim'>"+fmtFecha(iso)+"<br><small style='color:var(--muted)'>"+SEM[w]+"</small></td>"+
-          "<td class='r dim'>0</td><td class='dim' colspan='2'>sin lecturas</td></tr>");
+          "<td class='r dim'>0</td><td class='dim' colspan='2'>"+(iso===hoyISO()?"sin lecturas aún":"sin lecturas")+"</td></tr>");
       }
     }
     tb.innerHTML=filas.join("");
